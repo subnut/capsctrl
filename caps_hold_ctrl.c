@@ -9,11 +9,24 @@
  * fcntl.h  -   open(), O_RDONLY
  * stdio.h  -   fputs()
  * stdlib.h -   EXIT_{SUCCESS,FAILURE}
- * unistd.h -   close()
+ * unistd.h -   close(), sleep()
  */
 
 #include <libevdev/libevdev.h>
 #include <libevdev/libevdev-uinput.h>
+
+#ifdef EBUG
+#define _libevdev_uinput_write_event(uinput_dev, type, code, val) \
+        fprintf(stderr, "Event: %s %s %d\n", \
+                libevdev_event_type_get_name(type), \
+                libevdev_event_code_get_name(type, code),\
+                val\
+        ), \
+        libevdev_uinput_write_event(uinput_dev, type, code, val)
+#else
+#define _libevdev_uinput_write_event(uinput_dev, type, code, val) \
+        libevdev_uinput_write_event(uinput_dev, type, code, val)
+#endif /* EBUG */
 
 int
 main(int argc, char *argv[])
@@ -27,6 +40,7 @@ main(int argc, char *argv[])
                                 , argv[0]),
                        EXIT_FAILURE;
 
+        int caps_old_val;
         int retcode;
         int dev_fd;
         struct libevdev         *dev;
@@ -68,16 +82,67 @@ main(int argc, char *argv[])
                        perror("Failed to open uinput"),
                        EXIT_FAILURE;
 
+        caps_old_val = 0;
         do {
                 retcode = libevdev_next_event(dev, LIBEVDEV_READ_FLAG_NORMAL, &event);
                 if (retcode == LIBEVDEV_READ_STATUS_SUCCESS)
-                        if (libevdev_uinput_write_event(uinput_dev, event.type, event.code, event.value) < 0)
+                {
+                        if (event.type == EV_KEY && event.code == KEY_CAPSLOCK)
+                        {
+                                switch (event.value)
+                                {
+                                        case 2: // Repeat CapsLock -> Press LCTRL
+                                                {
+                                                        caps_old_val = event.value;
+                                                        event.code = KEY_LEFTCTRL;
+                                                        event.value = 1;
+                                                        break;
+                                                }
+                                        case 1: // Press CapsLock -> Do nothing
+                                                {
+                                                        caps_old_val = event.value;
+                                                        continue;
+                                                        break;
+                                                }
+                                        case 0: // Release CapsLock
+                                                {
+                                                        switch (caps_old_val)
+                                                        {
+                                                                case 2: // Previously repeating
+                                                                        {
+                                                                                caps_old_val = event.value;
+                                                                                event.code = KEY_LEFTCTRL;
+                                                                                event.value = 0;
+                                                                                break;
+                                                                        }
+                                                                case 1: // Momentarily pressed
+                                                                        {
+                                                                                if (_libevdev_uinput_write_event(uinput_dev, event.type, event.code, 1) < 0)
+                                                                                        return errno = -retcode,
+                                                                                               perror("Failed to write event to uinput"),
+                                                                                               EXIT_FAILURE;
+                                                                                caps_old_val = event.value;
+                                                                                break;
+                                                                        }
+                                                                case 0:
+                                                                        {
+                                                                                caps_old_val = event.value;
+                                                                                break;
+                                                                        }
+                                                        }
+                                                        break;
+                                                }
+                                }
+                        }
+                        if (_libevdev_uinput_write_event(uinput_dev, event.type, event.code, event.value) < 0)
                                 return errno = -retcode,
                                        perror("Failed to write event to uinput"),
                                        EXIT_FAILURE;
+                }
 
                 switch (retcode)
                 {
+                        /*
                         case LIBEVDEV_READ_STATUS_SUCCESS:
                                 fprintf(stderr, "Event: %s %s %d\n",
                                                 libevdev_event_type_get_name(event.type),
@@ -85,6 +150,7 @@ main(int argc, char *argv[])
                                                 event.value
                                        );
                                 break;
+                        */
                         case LIBEVDEV_READ_STATUS_SYNC:
                                 fputs("WARNING: libevdev_next_event returned "
                                                 "LIBEVDEV_READ_STATUS_SYNC\n",
@@ -97,6 +163,7 @@ main(int argc, char *argv[])
                                 break;
                 }
         } while (retcode == LIBEVDEV_READ_STATUS_SUCCESS
+                        /* TODO: Remove these? */
                         || retcode == LIBEVDEV_READ_STATUS_SYNC
                         || retcode == -EAGAIN);
 
