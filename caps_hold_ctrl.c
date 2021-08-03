@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 /*
@@ -9,29 +10,30 @@
  * fcntl.h  -   open(), O_RDONLY
  * stdio.h  -   fputs()
  * stdlib.h -   EXIT_{SUCCESS,FAILURE}
+ * string.h -   strcmp(), strncmp()
  * unistd.h -   close(), sleep()
  */
 
 #include <libevdev/libevdev.h>
 #include <libevdev/libevdev-uinput.h>
 
+static inline int
+uinput_write_event(struct libevdev_uinput *uinput_dev, struct input_event *event)
+{
 #ifdef EBUG
-#define _libevdev_uinput_write_event(uinput_dev, type, code, val) \
-        fprintf(stderr, "Event: %s %s %d\n", \
-                libevdev_event_type_get_name(type), \
-                libevdev_event_code_get_name(type, code),\
-                val\
-        ), \
-        libevdev_uinput_write_event(uinput_dev, type, code, val)
-#else
-#define _libevdev_uinput_write_event(uinput_dev, type, code, val) \
-        libevdev_uinput_write_event(uinput_dev, type, code, val)
-#endif /* EBUG */
+        fprintf(stderr, "Event: %s %s %d\n",
+                libevdev_event_type_get_name(event->type),
+                libevdev_event_code_get_name(event->type, event->code),
+                event->value);
+#endif
+        return libevdev_uinput_write_event(uinput_dev, event->type, event->code, event->value);
+}
+
 
 int
 main(int argc, char *argv[])
 {
-        if (argc != 2)
+        if (argc != 2 || !strcmp(argv[1], "-h") || !strncmp(argv[1], "--h", 3))
                 return fprintf(stderr,
                                 "Usage: %s <device>\n"
                                 "\n"
@@ -117,11 +119,13 @@ main(int argc, char *argv[])
                                                                         }
                                                                 case 1: // Momentarily pressed
                                                                         {
-                                                                                if (_libevdev_uinput_write_event(uinput_dev, event.type, event.code, 1) < 0)
+                                                                                caps_old_val = event.value;
+                                                                                event.value = 1;
+                                                                                if (uinput_write_event(uinput_dev, &event))
                                                                                         return errno = -retcode,
                                                                                                perror("Failed to write event to uinput"),
                                                                                                EXIT_FAILURE;
-                                                                                caps_old_val = event.value;
+                                                                                event.value = caps_old_val;
                                                                                 break;
                                                                         }
                                                                 case 0:
@@ -134,7 +138,7 @@ main(int argc, char *argv[])
                                                 }
                                 }
                         }
-                        if (_libevdev_uinput_write_event(uinput_dev, event.type, event.code, event.value) < 0)
+                        if (uinput_write_event(uinput_dev, &event) < 0)
                                 return errno = -retcode,
                                        perror("Failed to write event to uinput"),
                                        EXIT_FAILURE;
