@@ -14,7 +14,7 @@
  * fcntl.h  -   open(), O_RDONLY
  * time.h   -   clock_gettime()
  * stdio.h  -   fputs()
- * stdlib.h -   EXIT_{SUCCESS,FAILURE}
+ * stdlib.h -   EXIT_{SUCCESS,FAILURE}, exit()
  * string.h -   strcmp(), strncmp()
  * unistd.h -   close()
  */
@@ -34,6 +34,19 @@
  *
  * eg. I don't free() before exiting, I use CLOCK_MONOTONIC_RAW, etc.
  */
+
+/* Returns current time in microseconds */
+static inline long long int
+gettime(void)
+{
+        struct timespec timespec;
+        if (clock_gettime(CLOCK_MONOTONIC_RAW, &timespec) != 0)
+        {
+                perror("FATAL: clock_gettime error"),
+                exit(EXIT_FAILURE);
+        }
+        return ((timespec.tv_sec * 1000) + (timespec.tv_nsec / 1000000));
+}
 
 static inline int
 uinput_write_event(struct libevdev_uinput *uinput_dev, struct input_event *event)
@@ -82,12 +95,15 @@ main(int argc, char *argv[])
         struct libevdev         *dev;
         struct libevdev_uinput  *uinput_dev;
         struct input_event      event;
-        struct timespec         timespec;
 
         struct {
-                long long since;
+                long long int since;
                 enum { UP, DOWN, CTRL } state;
         } CapsState;
+
+        /* We're assuming that CapsLock isn't already held down */
+        CapsState.state = UP;
+        CapsState.since = gettime();
 
         /*
          * We don't use O_NONBLOCK, since that causes the loop to keep running
@@ -124,47 +140,20 @@ main(int argc, char *argv[])
                        perror("Failed to open uinput"),
                        EXIT_FAILURE;
 
-        for (;;)
+        for (retcode = next_event(dev, &event);
+                        retcode == LIBEVDEV_READ_STATUS_SUCCESS;
+                        retcode = next_event(dev, &event))
         {
-                retcode = next_event(dev, &event);
-                switch (retcode)
-                {
-                        case LIBEVDEV_READ_STATUS_SUCCESS:
-                                break;
-                        case LIBEVDEV_READ_STATUS_SYNC:
-                                fputs("WARNING: libevdev_next_event returned "
-                                                "LIBEVDEV_READ_STATUS_SYNC\n",
-                                                stderr);
-                                /* XXX: continue or break?  */
-                                continue;
-                                break;
-                        case -EAGAIN:
-                                fputs("WARNING: libevdev_next_event returned "
-                                                "EAGAIN\n",
-                                                stderr);
-                                /* XXX: continue or break?  */
-                                continue;
-                                break;
-                        default:
-                                errno = -retcode;
-                                perror("FATAL: libevdev_next_event error");
-                                return EXIT_FAILURE;
-                }
-
                 if (event.code == KEY_CAPSLOCK && event.value == 2)
                         /* Act like that never happened */
                         continue;
-
-                if (clock_gettime(CLOCK_MONOTONIC_RAW, &timespec) != 0)
-                        return perror("FATAL: clock_gettime error"),
-                               EXIT_FAILURE;
 
                 if (event.code == KEY_CAPSLOCK)
                 {
                         if (event.value == 1)
                         {
                                 CapsState.state = DOWN;
-                                CapsState.since = ((timespec.tv_sec * 1000) + (timespec.tv_nsec / 1000000)); /* microseconds */
+                                CapsState.since = gettime();
                                 /*
                                  * Don't write this event to uinput, 'cause we
                                  * aren't if this is a CapsLock or a Control
@@ -181,7 +170,7 @@ main(int argc, char *argv[])
                                 else /* CapsState.state == DOWN */
                                 {
                                         CapsState.state = UP;
-                                        if ((((timespec.tv_sec * 1000) + (timespec.tv_nsec / 1000000)) - CapsState.since) > DELAY)
+                                        if ((gettime() - CapsState.since) > DELAY)
                                                 /*
                                                  * The button was held down for too long.
                                                  * ie. The user was thinking of executing
@@ -238,7 +227,23 @@ main(int argc, char *argv[])
                                EXIT_FAILURE;
         }
 
-        /* XXX: Unreachable code below */
+        switch (retcode)
+        {
+                case LIBEVDEV_READ_STATUS_SYNC:
+                        fputs("WARNING: libevdev_next_event returned "
+                                        "LIBEVDEV_READ_STATUS_SYNC\n",
+                                        stderr);
+                        break;
+                case -EAGAIN:
+                        fputs("WARNING: libevdev_next_event returned "
+                                        "EAGAIN\n",
+                                        stderr);
+                        break;
+                default:
+                        errno = -retcode;
+                        perror("FATAL: libevdev_next_event error");
+        }
+
         libevdev_uinput_destroy(uinput_dev);
         libevdev_free(dev);
         close(dev_fd);
