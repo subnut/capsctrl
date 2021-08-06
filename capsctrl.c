@@ -145,8 +145,11 @@ main(int argc, char *argv[])
                         retcode = next_event(dev, &event))
         {
                 if (event.code == KEY_CAPSLOCK && event.value == 2)
-                        /* Act like that never happened */
-                        continue;
+                {
+                        CapsState.state = CTRL;
+                        event.code = CTRL_KEYSYM;
+                        event.value = 1;
+                }
 
                 if (event.code == KEY_CAPSLOCK)
                 {
