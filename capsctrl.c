@@ -88,7 +88,7 @@ main(int argc, char *argv[])
                                 "\t<device>\tPath to device inside /dev/input\n"
                                 "\n"
                                 , argv[0]),
-                       EXIT_FAILURE;
+                       (argc != 2 ? EXIT_FAILURE : EXIT_SUCCESS);
 
         int retcode;
         int dev_fd;
@@ -232,19 +232,26 @@ main(int argc, char *argv[])
 
         switch (retcode)
         {
+                case -ENODEV:
+                        fprintf(stderr, "Device disconnected: %s\n", argv[1]);
+                        break;
+
                 case LIBEVDEV_READ_STATUS_SYNC:
                         fputs("WARNING: libevdev_next_event returned "
                                         "LIBEVDEV_READ_STATUS_SYNC\n",
                                         stderr);
                         break;
+
                 case -EAGAIN:
                         fputs("WARNING: libevdev_next_event returned "
                                         "EAGAIN\n",
                                         stderr);
                         break;
+
                 default:
                         errno = -retcode;
-                        perror("FATAL: libevdev_next_event error");
+                        return perror("FATAL: libevdev_next_event error"),
+                               EXIT_FAILURE;
         }
 
         libevdev_uinput_destroy(uinput_dev);
