@@ -27,20 +27,21 @@
 #define DELAY 300 // In milliseconds
 
 
-/*
- * Note that this piece of software has been written to be Linux-speific only.
- * So, I haven't put too much effort to make it C99 compatible or pure POSIX
- * compatible.
- *
- * eg. I don't free() before exiting, I use CLOCK_MONOTONIC_RAW, etc.
- */
+#define CLOCK   CLOCK_REALTIME
+#ifdef          CLOCK_MONOTONIC_RAW
+#define CLOCK   CLOCK_MONOTONIC_RAW
+#endif
+#ifdef          CLOCK_MONOTONIC
+#define CLOCK   CLOCK_MONOTONIC
+#endif
+
 
 /* Returns current time in microseconds */
 static inline long long int
 gettime(void)
 {
         struct timespec timespec;
-        if (clock_gettime(CLOCK_MONOTONIC_RAW, &timespec) != 0)
+        if (clock_gettime(CLOCK, &timespec) != 0)
         {
                 perror("FATAL: clock_gettime error"),
                 exit(EXIT_FAILURE);
