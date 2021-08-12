@@ -1,0 +1,39 @@
+capsctrl
+========
+
+DEPENDENCIES -
+	- libevdev -- https://www.freedesktop.org/wiki/Software/libevdev
+
+BUILDING -
+	make
+
+INSTALLING -
+	make install
+
+
+What it does
+------------
+It listens for key presses...
+
+- If the CapsLock key is merely tapped, it behaves as a normal CapsLock key.
+
+- If the CapsLock key has been held down for a duration more than a
+  configurable delay, it makes the CapsLock key behave as a Control key.
+
+- If the CapsLock key has been held pressed-down while pressing another key, it
+  makes the CapsLock key behave as a Control key.
+
+
+What is it useful for
+--------------------
+It is useful for mapping the CapsLock key to the Control key without losing
+it's original functionality.  This _may_ help avoid RSI.
+
+
+What if I want to change its behaviour (like changing the delay, etc.)
+----------------------------------------------------------------------
+Since it is written in simple C, and the source code is very small (~200 SLOC),
+I encourage you to try and see if you can implement it yourself.
+
+If, for *any* reason, you aren't able to implement what you wanted, I am happy
+to help!  :)
