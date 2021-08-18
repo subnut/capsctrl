@@ -27,12 +27,12 @@
 #define DELAY 300 // In milliseconds
 
 
-#define CLOCK   CLOCK_REALTIME
-#ifdef          CLOCK_MONOTONIC_RAW
+#if     defined(CLOCK_MONOTONIC_RAW)
 #define CLOCK   CLOCK_MONOTONIC_RAW
-#endif
-#ifdef          CLOCK_MONOTONIC
+#elif   defined(CLOCK_MONOTONIC)
 #define CLOCK   CLOCK_MONOTONIC
+#else        // CLOCK_REALTIME is always available in POSIX-1.2017
+#define CLOCK   CLOCK_REALTIME
 #endif
 
 
