@@ -1,22 +1,45 @@
 .POSIX:
+all:
 
-CFLAGS = `pkg-config --cflags libevdev` -O2 -Wall
-LDFLAGS = `pkg-config --libs libevdev`
+CFLAGS          = -Wall -O2
+DESTDIR         = /usr/local/bin
+EVDEV_CFLAGS    = `pkgconf --cflags libevdev`
+EVDEV_LDFLAGS   = `pkgconf --libs   libevdev`
 
-all: checkdeps capsctrl
-clean: ; rm -f capsctrl logger
-uninstall: ; DESTDIR="$(DESTDIR)"; DESTDIR="$${DESTDIR:-/usr/local/bin}"; rm -rf "$${DESTDIR}/capsctrl"
-install: ; DESTDIR="$(DESTDIR)"; DESTDIR="$${DESTDIR:-/usr/local/bin}"; cp capsctrl "$${DESTDIR}/capsctrl"; \
-	chown root:root "$${DESTDIR}/capsctrl"; chmod 4111 "$${DESTDIR}/capsctrl"
+all: build
+build: checkdeps capsctrl
+clean: ;@if [ -f capsctrl ]; then echo rm -f capsctrl; rm -f capsctrl; fi
+	@if [ -f logger   ]; then echo rm -f logger  ; rm -f logger  ; fi
 
-logger: logger.c
-capsctrl: capsctrl.c
+install: build
+	@if [ -f "$(DESTDIR)/capsctrl" ]; then rm -rf "$(DESTDIR)/capsctrl"; fi
+	cp capsctrl "$(DESTDIR)/capsctrl"
+	chown root:root "$(DESTDIR)/capsctrl"
+	chmod 4111 "$(DESTDIR)/capsctrl"
+
+uninstall:
+	rm -rf "$(DESTDIR)/capsctrl"
+
 
 checkbuilddeps:
-	@if ! command -v pkg-config >/dev/null; then echo pkg-config not found; \
-	echo Please install pkgconfig before building; exit 1; fi
+	@command -v pkgconf >/dev/null || {			\
+		echo pkgconf not found;				\
+		echo Please install pkgconfig before building;	\
+		exit 1;						\
+	}
 
 checkdeps: checkbuilddeps
-	@if ! pkg-config libevdev; then echo pkg-config "couldn't" find libevdev; \
-	echo Please check if libevdev is installed and pkg-config is configured \
-	properly; exit 1; fi
+	@pkgconf libevdev || { 					\
+		echo pkgconf "couldn't" find libevdev;		\
+		echo Please check if libevdev is installed and	\
+		pkgconf is configured properly;			\
+		exit 1;						\
+	}
+
+
+CFLAGS_  = $(EVDEV_CFLAGS) $(CFLAGS)
+LDFLAGS_ = $(EVDEV_LDFLAGS) $(LDFLAGS)
+
+.SUFFIXES:
+.SUFFIXES: .c
+.c: ; $(CC) $(CFLAGS_) $(LDFLAGS_) -o $@ $<
