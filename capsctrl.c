@@ -37,7 +37,7 @@
 
 
 /* Returns current time in microseconds */
-static inline long long int
+static inline long int
 gettime(void)
 {
         struct timespec timespec;
@@ -46,7 +46,8 @@ gettime(void)
                 perror("FATAL: clock_gettime error"),
                 exit(EXIT_FAILURE);
         }
-        return ((timespec.tv_sec * 1000) + (timespec.tv_nsec / 1000000));
+        return ((timespec.tv_sec * 1000L) + (timespec.tv_nsec / 1000000L));
+        /* tv_nsec is long int */
 }
 
 static inline int
@@ -98,7 +99,7 @@ main(int argc, char *argv[])
         struct input_event      event;
 
         struct {
-                long long int since;
+                long int since;
                 enum { UP, DOWN, CTRL } state;
         } CapsState;
 
