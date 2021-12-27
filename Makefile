@@ -24,7 +24,7 @@ uninstall:
 checkbuilddeps:
 	@command -v pkgconf >/dev/null || {			\
 		echo pkgconf not found;				\
-		echo Please install pkgconfig before building;	\
+		echo Please install pkgconf before building;	\
 		exit 1;						\
 	}
 
