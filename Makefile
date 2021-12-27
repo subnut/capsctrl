@@ -3,8 +3,10 @@ all:
 
 CFLAGS          = -Wall -O2
 DESTDIR         = /usr/local/bin
-EVDEV_CFLAGS    = `pkgconf --cflags libevdev`
-EVDEV_LDFLAGS   = `pkgconf --libs   libevdev`
+EVDEV_CFLAGS    = `pkgconf --cflags-only-other --libs-only-other libevdev`
+EVDEV_IFLAGS    = `pkgconf --cflags-only-I libevdev`
+EVDEV_LFLAGS    = `pkgconf --libs-only-L libevdev`
+EVDEV_lFLAGS    = `pkgconf --libs-only-l libevdev`
 
 all: build
 build: checkdeps capsctrl
@@ -37,9 +39,7 @@ checkdeps: checkbuilddeps
 	}
 
 
-CFLAGS_  = $(EVDEV_CFLAGS) $(CFLAGS)
-LDFLAGS_ = $(EVDEV_LDFLAGS) $(LDFLAGS)
-
 .SUFFIXES:
 .SUFFIXES: .c
-.c: ; $(CC) $(CFLAGS_) $(LDFLAGS_) -o $@ $<
+.c: ; $(CC) $(CFLAGS) $(LDFLAGS) $(EVDEV_CFLAGS) -o $@ $< \
+        $(EVDEV_IFLAGS) $(EVDEV_LFLAGS) $(EVDEV_lFLAGS)
