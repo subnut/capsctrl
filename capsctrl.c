@@ -146,6 +146,11 @@ main(int argc, char *argv[])
                         retcode == LIBEVDEV_READ_STATUS_SUCCESS;
                         retcode = next_event(dev, &event))
         {
+                if (event.code == KEY_RIGHTALT)
+                {
+                        event.code = CTRL_KEYSYM;
+                        goto send;
+                }
                 if (event.code == KEY_CAPSLOCK && event.value == 2)
                 {
                         CapsState.state = CTRL;
@@ -226,6 +231,7 @@ main(int argc, char *argv[])
 
                 }
 
+send:
                 if ((retcode = uinput_write_event(uinput_dev, &event)) < 0)
                         return errno = -retcode,
                                perror("Failed to write event to uinput"),
