@@ -146,6 +146,13 @@ main(int argc, char *argv[])
                         retcode == LIBEVDEV_READ_STATUS_SUCCESS;
                         retcode = next_event(dev, &event))
         {
+                switch (event.code)
+                {
+                        case KEY_RIGHTALT: event.code = KEY_RIGHTCTRL; break;
+                        case KEY_RIGHTCTRL: event.code = KEY_RIGHTALT; break;
+                        default: break;
+                }
+
                 if (event.code == KEY_CAPSLOCK && event.value == 2)
                 {
                         CapsState.state = CTRL;
