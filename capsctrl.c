@@ -26,6 +26,8 @@
 #define CTRL_KEYSYM KEY_LEFTCTRL
 #define DELAY 300 // In milliseconds
 
+/* Swap Right ALT and CTRL keys (useful for emacs) */
+#define SWAP_RALT_RCTRL
 
 #if     defined(CLOCK_MONOTONIC_RAW)
 #define CLOCK   CLOCK_MONOTONIC_RAW
@@ -146,12 +148,14 @@ main(int argc, char *argv[])
                         retcode == LIBEVDEV_READ_STATUS_SUCCESS;
                         retcode = next_event(dev, &event))
         {
-                switch (event.code)
-                {
-                        case KEY_RIGHTALT: event.code = KEY_RIGHTCTRL; break;
-                        case KEY_RIGHTCTRL: event.code = KEY_RIGHTALT; break;
+
+#ifdef SWAP_RALT_RCTRL
+                switch (event.code) {
+                        case KEY_RIGHTALT: event.code = KEY_RIGHTCTRL; goto send;
+                        case KEY_RIGHTCTRL: event.code = KEY_RIGHTALT; goto send;
                         default: break;
                 }
+#endif
 
                 if (event.code == KEY_CAPSLOCK && event.value == 2)
                 {
