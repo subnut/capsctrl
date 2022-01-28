@@ -157,64 +157,57 @@ main(int argc, char *argv[])
                 }
 #endif
 
-                if (event.code == KEY_CAPSLOCK && event.value == 2)
-                {
+                if (event.code == KEY_CAPSLOCK && event.value == 2) {
                         CapsState.state = CTRL;
                         event.code = CTRL_KEYSYM;
                         event.value = 1;
+                        goto send;
                 }
-
-                if (event.code == KEY_CAPSLOCK)
-                {
-                        if (event.value == 1)
+                if (event.code == KEY_CAPSLOCK && event.value == 1) {
+                        CapsState.state = DOWN;
+                        CapsState.since = gettime();
+                        /*
+                         * Don't write this event to uinput, because we
+                         * don't know if this is a CapsLock or a Control
+                         */
+                        continue;
+                }
+                if (event.code == KEY_CAPSLOCK && event.value == 0) {
+                        if (CapsState.state == CTRL)
                         {
-                                CapsState.state = DOWN;
-                                CapsState.since = gettime();
-                                /*
-                                 * Don't write this event to uinput, 'cause we
-                                 * aren't if this is a CapsLock or a Control
-                                 */
-                                continue;
+                                CapsState.state = UP;
+                                event.code = CTRL_KEYSYM;
                         }
-                        else /* event.value == 0 */
+                        else /* CapsState.state == DOWN */
                         {
-                                if (CapsState.state == CTRL)
-                                {
-                                        CapsState.state = UP;
-                                        event.code = CTRL_KEYSYM;
-                                }
-                                else /* CapsState.state == DOWN */
-                                {
-                                        CapsState.state = UP;
-                                        if ((gettime() - CapsState.since) > DELAY)
-                                                /*
-                                                 * The button was held down for too long.
-                                                 * ie. The user was thinking of executing
-                                                 * a keychord beginning with CTRL, but
-                                                 * never got beyond the CTRL key.
-                                                 *
-                                                 * This event should be ignored.
-                                                 */
-                                                continue;
-
+                                CapsState.state = UP;
+                                if ((gettime() - CapsState.since) > DELAY)
                                         /*
-                                         * The interval between pressing CapsLock and
-                                         * releasing it is less than the configured delay
+                                         * The button was held down for too long.
+                                         * ie. The user was thinking of executing
+                                         * a keychord beginning with CTRL, but
+                                         * never got beyond the CTRL key.
                                          *
-                                         * The user wants to toggle CapsLock
+                                         * This event should be ignored.
                                          */
-                                        event.value = 1; /* To signify pressing down */
-                                        if ((retcode = uinput_write_event(uinput_dev, &event)) < 0)
-                                                return errno = -retcode,
-                                                       perror("Failed to write event to uinput"),
-                                                       EXIT_FAILURE;
-                                        event.value = 0; /* To signify releasing it */
-                                }
+                                        continue;
 
+                                /*
+                                 * The interval between pressing CapsLock and
+                                 * releasing it is less than the configured delay
+                                 *
+                                 * The user wants to toggle CapsLock
+                                 */
+                                event.value = 1; /* To signify pressing down */
+                                if ((retcode = uinput_write_event(uinput_dev, &event)) < 0)
+                                        return errno = -retcode,
+                                               perror("Failed to write event to uinput"),
+                                               EXIT_FAILURE;
+                                event.value = 0; /* To signify releasing it */
                         }
+
                 }
-                else if (event.type == EV_KEY)
-                {
+                if (event.code != KEY_CAPSLOCK && event.type == EV_KEY) {
                         if (CapsState.state == DOWN)
                         {
                                 /* User has pressed a different key while holding down CapsLock */
@@ -237,6 +230,7 @@ main(int argc, char *argv[])
 
                 }
 
+send:
                 if ((retcode = uinput_write_event(uinput_dev, &event)) < 0)
                         return errno = -retcode,
                                perror("Failed to write event to uinput"),
