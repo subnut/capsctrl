@@ -1,6 +1,7 @@
 .POSIX:
 all:
 
+LDFLAGS         = -s
 CFLAGS          = -Wall -O2
 DESTDIR         = /usr/local/bin
 EVDEV_CFLAGS    = `pkgconf --cflags-only-other --libs-only-other libevdev`
