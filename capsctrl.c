@@ -27,7 +27,9 @@
 #define DELAY 300 // In milliseconds
 
 /* Swap Right ALT and CTRL keys (useful for emacs) */
-#define SWAP_RALT_RCTRL
+#ifndef SWAP_RALT_RCTRL
+#define SWAP_RALT_RCTRL 0
+#endif
 
 #if     defined(CLOCK_MONOTONIC_RAW)
 #define CLOCK   CLOCK_MONOTONIC_RAW
@@ -149,7 +151,7 @@ main(int argc, char *argv[])
                         retcode = next_event(dev, &event))
         {
 
-#ifdef SWAP_RALT_RCTRL
+#if SWAP_RALT_RCTRL
                 switch (event.code) {
                         case KEY_RIGHTALT: event.code = KEY_RIGHTCTRL; goto send;
                         case KEY_RIGHTCTRL: event.code = KEY_RIGHTALT; goto send;
