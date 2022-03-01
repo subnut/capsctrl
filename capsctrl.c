@@ -31,6 +31,7 @@
 #define SWAP_RALT_RCTRL 0
 #endif
 
+/* Choose a clock */
 #if     defined(CLOCK_MONOTONIC_RAW)
 #define CLOCK   CLOCK_MONOTONIC_RAW
 #elif   defined(CLOCK_MONOTONIC)
@@ -38,7 +39,6 @@
 #else        // CLOCK_REALTIME is always available in POSIX-1.2017
 #define CLOCK   CLOCK_REALTIME
 #endif
-
 
 /* Returns current time in microseconds */
 static inline long int
