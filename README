@@ -3,6 +3,7 @@ capsctrl
 
 DEPENDENCIES -
 	- libevdev -- https://www.freedesktop.org/wiki/Software/libevdev
+	- `uinput` kernel module
 
 BUILDING -
 	make
