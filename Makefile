@@ -1,8 +1,8 @@
 .POSIX:
 all:
 
+CFLAGS          = -Wall -O2 -DDAEMONIZE
 LDFLAGS         = -s
-CFLAGS          = -Wall -O2
 DESTDIR         = /usr/local/bin
 EVDEV_CFLAGS    = `pkgconf --cflags-only-other --libs-only-other libevdev`
 EVDEV_IFLAGS    = `pkgconf --cflags-only-I libevdev`
@@ -11,7 +11,8 @@ EVDEV_lFLAGS    = `pkgconf --libs-only-l libevdev`
 
 all: build
 build: checkdeps capsctrl
-clean: ;@if [ -f capsctrl ]; then echo rm -f capsctrl; rm -f capsctrl; fi
+clean:
+	@if [ -f capsctrl ]; then echo rm -f capsctrl; rm -f capsctrl; fi
 	@if [ -f logger   ]; then echo rm -f logger  ; rm -f logger  ; fi
 
 install: build

@@ -8,15 +8,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 /*
  * errno.h  -   errno, perror()
  * fcntl.h  -   open(), O_RDONLY
  * time.h   -   clock_gettime()
- * stdio.h  -   fputs()
+ * stdio.h  -   fputs(), perror()
  * stdlib.h -   EXIT_{SUCCESS,FAILURE}, exit()
  * string.h -   strcmp(), strncmp()
- * unistd.h -   close()
+ * unistd.h -   close(), fork()
+ * sys/wait.h - wait()
  */
 
 #include <libevdev/libevdev.h>
@@ -95,6 +97,19 @@ main(int argc, char *argv[])
                                 "\n"
                                 , argv[0]),
                        (argc != 2 ? EXIT_FAILURE : EXIT_SUCCESS);
+
+#ifdef DAEMONIZE
+        pid_t pid;
+        pid = fork();
+        if (pid == -1) return perror("Could not fork[1]"), errno;
+        if (pid !=  0) return wait(NULL), EXIT_SUCCESS;
+        if (setsid() == -1)
+                return perror("Could not create new session"),
+                       errno;
+        pid = fork();
+        if (pid == -1) return perror("Could not fork[2]"), errno;
+        if (pid !=  0) return EXIT_SUCCESS;
+#endif
 
         int retcode;
         int dev_fd;
