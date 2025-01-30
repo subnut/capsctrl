@@ -43,5 +43,8 @@ checkdeps: checkbuilddeps
 
 .SUFFIXES:
 .SUFFIXES: .c
-.c: ; $(CC) $(CFLAGS) $(LDFLAGS) $(EVDEV_CFLAGS) -o $@ $< \
-        $(EVDEV_IFLAGS) $(EVDEV_LFLAGS) $(EVDEV_lFLAGS)
+.c:
+	@echo $(CC) $(CFLAGS) $(LDFLAGS) $(EVDEV_CFLAGS) -o $@ $< \
+		$(EVDEV_IFLAGS) $(EVDEV_LFLAGS) $(EVDEV_lFLAGS)
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(EVDEV_CFLAGS) -o $@ $< \
+		$(EVDEV_IFLAGS) $(EVDEV_LFLAGS) $(EVDEV_lFLAGS)
